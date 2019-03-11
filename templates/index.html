@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SORRY_CHAT</title>
+    <link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-4">
+            <h2 style="text-align: center">SORRY_ROOM</h2>
+            <div class="form-group">
+                <label for="username">你是谁：</label>
+                <input class="form-control" type="text" id="username">
+            </div>
+            <button id="join_chat" onclick="go_to()" class="btn btn-warning">加入聊天室</button>
+            <div style="width: 100%; height: 300px; border: thick;background-color: cadetblue" id="chat_window" class="input-group">
+            </div>
+
+             <div class="input-group">
+                  <input type="text" class="form-control" placeholder="" id="send_msg">
+                  <span class="input-group-btn">
+                    <button class="btn btn-success" type="button" id="btn_send">发送消息</button>
+                  </span>
+                </div>
+              </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/javascript">
+
+    //加入聊天室
+    function go_to() {
+        var username = document.getElementById('username');
+        // 新建XMLHttpRequest对象
+        var req = new XMLHttpRequest();
+        // 状态发生变化时，函数被回调
+        req.onreadystatechange=function () {
+            //状态码为4代表请求完成
+            if (req.readyState==4&&req.status==200) {
+                data = req.responseText;
+                data = JSON.parse(data);
+                get_msg();
+            }
+        };
+        //post方式建立连接
+        req.open('post','http://192.168.0.112:8888/web_chat_join/'+username.value,true);
+        //post请求的编码方式，这是浏览器的原生 form 表单的默认编码方式
+        req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+        //发送请求
+        req.send("chat_join");
+    }
+
+    //长轮询递归获取数据
+    function get_msg() {
+        // 新建XMLHttpRequest对象
+        var req = new XMLHttpRequest();
+        // 状态发生变化时，函数被回调
+        req.onreadystatechange=function () {
+            //状态码为4代表请求完成
+            if (req.readyState==4&&req.status==200) {
+                data = req.responseText;
+                data = JSON.parse(data);
+                console.log(data);
+                //将收到的数据显示在前端
+                create_chart('',data.data);
+                //长轮询递归获取数据
+                get_msg();
+            }
+        };
+        //post方式建立连接
+        req.open('post','http://192.168.0.112:8888/get_msg',true);
+        //post请求的编码方式，这是浏览器的原生 form 表单的默认编码方式
+        req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+        //发送请求
+        req.send("username="+username.value);
+    }
+    //将数据显示在页面，我发的在右边，别人的在左边
+    function create_chart(self,content) {
+        var d = new Date();
+
+        var Y = d.getFullYear(); //获取年 
+
+        var M = d.getMonth();//获取月  
+
+        var D = d.getDate(); //获取当日
+
+        var h = d.getHours()//获取小时
+
+        var m = d.getMinutes()//获取分钟
+
+        var s = d.getSeconds()//获取秒
+
+
+        var daytime = Y+'-'+M+1+'-'+D+'\t'+h+':'+m+':'+s
+        if (self == "w"){
+            self = "right";
+            var spantag = document.createElement("span");
+            spantag.innerText= daytime+'\n\t'+content.send_msg;
+            var spantag1 = document.createElement("span");
+            spantag1.innerText=':我';
+        }else{
+            self = "left";
+            var spantag = document.createElement("span");
+            spantag.innerText=daytime+'\n\t'+content.send_user+':';
+
+            var spantag1 = document.createElement("span");
+            spantag1.innerText=content.send_msg;
+
+        }
+        var divtag = document.createElement("div");
+        divtag.style="text-align:"+self;
+        divtag.appendChild(spantag);
+        divtag.appendChild(spantag1);
+        var char_window = document.getElementById('chat_window');
+        char_window.appendChild(divtag);
+
+    }
+    //点击发送按钮，发送数据
+    document.getElementById("btn_send").addEventListener("click",function () {
+
+        var send_msg=document.getElementById("send_msg");
+        var username = document.getElementById('username');
+        // 新建XMLHttpRequest对象
+        var req = new XMLHttpRequest();
+        // 状态发生变化时，函数被回调
+        req.onreadystatechange=function () {
+            //状态码为4代表请求完成
+            if (req.readyState==4&&req.status==200) {
+                data = req.responseText;
+                data = JSON.parse(data);
+            }
+        };
+        //post方式建立连接
+        req.open('post','http://192.168.0.112:8888/web_chat',true);
+        //post请求的编码方式，这是浏览器的原生 form 表单的默认编码方式
+        req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+        //发送请求
+        req.send('msg='+send_msg.value+"&username="+username.value);
+        var s_msg = {send_msg:send_msg.value};
+
+        create_chart('w',s_msg);
+        send_msg.value='';
+    })
+
+
+
+    document.onkeydown=function(event){
+
+    var e = event || window.event || arguments.callee.caller.arguments[0];
+
+    if(e && e.keyCode==13){ // enter 键
+
+    //要做的事情
+          var send_msg=document.getElementById("send_msg");
+        var username = document.getElementById('username');
+        // 新建XMLHttpRequest对象
+        var req = new XMLHttpRequest();
+        // 状态发生变化时，函数被回调
+        req.onreadystatechange=function () {
+            //状态码为4代表请求完成
+            if (req.readyState==4&&req.status==200) {
+                data = req.responseText;
+                data = JSON.parse(data);
+            }
+        };
+        //post方式建立连接
+        req.open('post','http://192.168.0.112:8888/web_chat',true);
+        //post请求的编码方式，这是浏览器的原生 form 表单的默认编码方式
+        req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+        //发送请求
+        req.send('msg='+send_msg.value+"&username="+username.value);
+        var s_msg = {send_msg:send_msg.value};
+
+        create_chart('w',s_msg);
+        send_msg.value='';
+
+    }
+
+    };
+
+
+
+</script>
+</body>
+</html>
